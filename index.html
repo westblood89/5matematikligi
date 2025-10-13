@@ -44,7 +44,7 @@
                 <button onclick="showTab('upcoming', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
           🗓️ Gelecek Maçlar
         </button>
-                <button onclick="showTab('allstandings', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
+                <button onclick="showTab('allstandings', this)" class="tab-btn px-4 py-3 font-medium text-indigo-600 border-b-2 border-indigo-600">
           🧩 Toplu Puan Durumu
         </button>
         <button onclick="showTab('dataentry', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
@@ -53,7 +53,7 @@
       </div>
     </div>
 
-        <div id="standings" class="tab-content active">
+        <div id="standings" class="tab-content">
       <div class="bg-white rounded-lg shadow-lg p-6">
         <h2 class="text-2xl font-bold mb-4 text-gray-800">Puan Durumu</h2>
         <div class="mb-4">
@@ -109,7 +109,7 @@
       </div>
     </div>
 
-        <div id="allstandings" class="tab-content">
+        <div id="allstandings" class="tab-content active">
       <div class="bg-white rounded-lg shadow-lg p-6">
         <h2 class="text-2xl font-bold mb-4 text-gray-800">Toplu Puan Durumu</h2>
         <p class="text-sm text-gray-600 mb-4">Tüm grupların özet tabloları. (Ekran genişse ikişer sütun olarak görünür.)</p>
@@ -161,6 +161,7 @@ ADA USTA 10"></textarea>
 
         <div id="previewArea" class="mt-3"></div>
       </div>
+      
     </div>
   </div>
 
@@ -460,7 +461,7 @@ ADA USTA 10"></textarea>
             <div class="px-4 py-2 bg-indigo-50 border-b border-gray-200 font-semibold text-indigo-800">${g}</div>
             <div class="p-3 space-y-2">
               ${list.map(m=>{
-                // SKOR BİLGİSİ KALDIRILDI
+                // Skor bilgisi kaldırıldı, sadece 'vs' kaldı
                 return `<div class="flex items-center bg-gray-50 p-3 rounded">
                           <span class="flex-1 text-right font-medium">${m.homeTeam}</span>
                           <span class="mx-3 text-gray-600">vs</span>
@@ -473,7 +474,7 @@ ADA USTA 10"></textarea>
       container.innerHTML = html || '<p class="text-gray-500">Bu hafta için listelenecek maç yok.</p>';
     }
 
-    // === Toplu Puan Durumu (mini kartlar, 2 sütun) - DAHA ÇOK BİLGİ EKLENDİ ===
+    // === Toplu Puan Durumu (mini kartlar, 2 sütun) - ESKİ HALİNE DÖNDÜRÜLDÜ (Sadece S, Öğrenci, P) ===
     function renderAllStandings(){
       const grid = document.getElementById('allStandingsGrid');
       if (!grid) return;
@@ -483,15 +484,12 @@ ADA USTA 10"></textarea>
         ensureFixturesForGroup(g);
         const teams = leagueData.groups[g]||[];
         const st = calculateStandings(g, teams);
+        // Sadece Sıra, Öğrenci ve Puan sütunları kaldı
         const rows = st.map((t,i)=>`
           <tr class="${i<4?'qualified':''}">
-            <td class="border px-1 py-1 text-center text-xs">${i+1}</td>
-            <td class="border px-2 py-1 text-xs">${t.name}</td>
-            <td class="border px-1 py-1 text-center text-xs">${t.played}</td>
-            <td class="border px-1 py-1 text-center text-xs">${t.won}</td>
-            <td class="border px-1 py-1 text-center text-xs">${t.drawn}</td>
-            <td class="border px-1 py-1 text-center text-xs">${t.lost}</td>
-            <td class="border px-1 py-1 text-center text-xs font-bold">${t.points}</td>
+            <td class="border px-2 py-1 text-center text-sm">${i+1}</td>
+            <td class="border px-2 py-1 text-sm">${t.name}</td>
+            <td class="border px-2 py-1 text-center text-sm font-bold">${t.points}</td>
           </tr>`).join('');
         html += `
           <div class="border border-gray-200 rounded-lg overflow-hidden">
@@ -499,14 +497,10 @@ ADA USTA 10"></textarea>
             <div class="p-3 overflow-x-auto">
               <table class="w-full border-collapse">
                 <thead>
-                  <tr class="bg-gray-100 text-xs">
-                    <th class="border px-1 py-1 w-10">S</th>
-                    <th class="border px-2 py-1 text-left">Öğrenci</th>
-                    <th class="border px-1 py-1 w-8">O</th>
-                    <th class="border px-1 py-1 w-8">G</th>
-                    <th class="border px-1 py-1 w-8">B</th>
-                    <th class="border px-1 py-1 w-8">M</th>
-                    <th class="border px-1 py-1 w-10">P</th>
+                  <tr class="bg-gray-100">
+                    <th class="border px-2 py-1 text-center text-xs w-10">S</th>
+                    <th class="border px-2 py-1 text-left text-xs">Öğrenci</th>
+                    <th class="border px-2 py-1 text-center text-xs w-10">P</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>
@@ -648,8 +642,8 @@ ADA USTA 10"></textarea>
       createDownloadableBackup();
       const sg = document.getElementById('standingsGroupSelect');
       if (sg && sg.options.length > 1) { sg.selectedIndex = 1; showStandings(); }
-
-      // Yeni sekmeler için ilk render
+      // Başlangıçta Toplu Puan Durumu sekmesini aktif yapalım
+      showTab('allstandings');
       renderUpcoming();
       renderAllStandings();
     });
