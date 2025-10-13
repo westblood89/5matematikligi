@@ -43,6 +43,14 @@
         <button onclick="showTab('fixtures', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
           📅 Fikstür
         </button>
+        <!-- YENİ: Gelecek Maçlar -->
+        <button onclick="showTab('upcoming', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
+          🗓️ Gelecek Maçlar
+        </button>
+        <!-- YENİ: Toplu Puan Durumu -->
+        <button onclick="showTab('allstandings', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
+          🧩 Toplu Puan Durumu
+        </button>
         <button onclick="showTab('dataentry', this)" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">
           📥 Veri Girişi
         </button>
@@ -84,6 +92,36 @@
         </div>
 
         <div id="fixtureContent"></div>
+      </div>
+    </div>
+
+    <!-- YENİ: Gelecek Maçlar -->
+    <div id="upcoming" class="tab-content">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-end gap-4 mb-4">
+          <div>
+            <h2 class="text-2xl font-bold mb-2 text-gray-800">Gelecek Maçlar</h2>
+            <p class="text-sm text-gray-600">Seçtiğiniz haftadaki tüm grupların maçlarını listeler.</p>
+          </div>
+          <div class="ml-auto">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Hafta Seç:</label>
+            <select id="upcomingWeekSelect" class="border border-gray-300 rounded-lg px-3 py-2" onchange="renderUpcoming()">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+              <option value="7">7</option>
+            </select>
+          </div>
+        </div>
+        <div id="upcomingContent"></div>
+      </div>
+    </div>
+
+    <!-- YENİ: Toplu Puan Durumu -->
+    <div id="allstandings" class="tab-content">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Toplu Puan Durumu</h2>
+        <p class="text-sm text-gray-600 mb-4">Tüm grupların özet tabloları. (Ekran genişse ikişer sütun olarak görünür.)</p>
+        <div id="allStandingsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
       </div>
     </div>
 
@@ -159,6 +197,7 @@ ADA USTA 10"></textarea>
             Object.keys(leagueData.fixtures||{}).forEach(g => buildMatchIndex(g));
             saveData();
             populateGroupSelects(); showFixtures(); showStandings();
+            renderUpcoming(); renderAllStandings();
             alert('✅ Yedekten geri yüklendi');
           }
         } catch { alert('❌ Yedek okunamadı.'); }
@@ -272,6 +311,8 @@ ADA USTA 10"></textarea>
       if (btn) { btn.classList.remove('text-gray-500'); btn.classList.add('text-indigo-600','border-b-2','border-indigo-600'); }
       if (tabName === 'standings') showStandings();
       if (tabName === 'fixtures') showFixtures();
+      if (tabName === 'upcoming') renderUpcoming();
+      if (tabName === 'allstandings') renderAllStandings();
     }
 
     function calculateStandings(groupName, teams) {
@@ -401,6 +442,84 @@ ADA USTA 10"></textarea>
       showFixtures();
       const sel = document.getElementById('standingsGroupSelect');
       if (sel?.value === groupName) showStandings();
+      // Toplu görünümü de güncelle
+      if (document.getElementById('allstandings').classList.contains('active')) renderAllStandings();
+    }
+
+    // === YENİ: Gelecek Maçlar (tüm gruplar, seçilen hafta) ===
+    function renderUpcoming(){
+      const weekSel = document.getElementById('upcomingWeekSelect');
+      if (!weekSel) return;
+      const week = parseInt(weekSel.value,10);
+      const container = document.getElementById('upcomingContent');
+      if (!container) return;
+
+      // Tüm gruplarda fikstür hazırla
+      Object.keys(leagueData.groups||{}).forEach(g => ensureFixturesForGroup(g));
+
+      const groups = Object.keys(leagueData.groups||{});
+      if (!groups.length){ container.innerHTML='<p class="text-gray-500">Grup bulunamadı.</p>'; return; }
+
+      let html = '';
+      for (const g of groups){
+        const list = (leagueData.fixtures[g]||[]).filter(f => f.round === week);
+        if (!list.length) continue;
+        html += `
+          <div class="mb-5 border border-gray-200 rounded-lg">
+            <div class="px-4 py-2 bg-indigo-50 border-b border-gray-200 font-semibold text-indigo-800">${g}</div>
+            <div class="p-3 space-y-2">
+              ${list.map(m=>{
+                const res = leagueData.results[g]?.[m.id];
+                const hs = res?.homeScore;
+                const as = res?.awayScore;
+                const score = (hs===''||as===''||hs==null||as==null) ? '—' : (hs + ' - ' + as);
+                return `<div class="flex items-center bg-gray-50 p-3 rounded">
+                          <span class="flex-1 text-right font-medium">${m.homeTeam}</span>
+                          <span class="mx-3 text-gray-600">${score}</span>
+                          <span class="flex-1 font-medium">${m.awayTeam}</span>
+                        </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
+      container.innerHTML = html || '<p class="text-gray-500">Bu hafta için listelenecek maç yok.</p>';
+    }
+
+    // === YENİ: Toplu Puan Durumu (mini kartlar, 2 sütun) ===
+    function renderAllStandings(){
+      const grid = document.getElementById('allStandingsGrid');
+      if (!grid) return;
+
+      let html = '';
+      Object.keys(leagueData.groups||{}).forEach(g=>{
+        ensureFixturesForGroup(g);
+        const teams = leagueData.groups[g]||[];
+        const st = calculateStandings(g, teams);
+        const rows = st.map((t,i)=>`
+          <tr class="${i<4?'qualified':''}">
+            <td class="border px-2 py-1 text-center text-sm">${i+1}</td>
+            <td class="border px-2 py-1 text-sm">${t.name}</td>
+            <td class="border px-2 py-1 text-center text-sm">${t.points}</td>
+          </tr>`).join('');
+        html += `
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="px-3 py-2 bg-indigo-600 text-white font-semibold">${g}</div>
+            <div class="p-3 overflow-x-auto">
+              <table class="w-full border-collapse">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="border px-2 py-1 text-center text-xs w-10">S</th>
+                    <th class="border px-2 py-1 text-left text-xs">Öğrenci</th>
+                    <th class="border px-2 py-1 text-center text-xs w-10">P</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      });
+
+      grid.innerHTML = html || '<p class="text-gray-500">Gruplar yüklenemedi.</p>';
     }
 
     function normName(s){
@@ -516,6 +635,7 @@ ADA USTA 10"></textarea>
       if (target) { target.classList.add('flash'); target.scrollIntoView({behavior:'smooth', block:'start'}); setTimeout(()=>target.classList.remove('flash'),1200); }
 
       if (document.getElementById('standingsGroupSelect').value === groupName) showStandings();
+      if (document.getElementById('allstandings').classList.contains('active')) renderAllStandings();
 
       const area = document.getElementById('previewArea');
       area.innerHTML = '<div class="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-800">✅ ' + updated + ' maç güncellendi. Fikstür (Hafta ' + week + ') ve Puan Durumu yenilendi.</div>';
@@ -532,6 +652,10 @@ ADA USTA 10"></textarea>
       createDownloadableBackup();
       const sg = document.getElementById('standingsGroupSelect');
       if (sg && sg.options.length > 1) { sg.selectedIndex = 1; showStandings(); }
+
+      // Yeni sekmeler için ilk render
+      renderUpcoming();
+      renderAllStandings();
     });
   </script>
 
